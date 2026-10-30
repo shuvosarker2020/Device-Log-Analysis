@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: '#111827',
+                        cardBorder: '#1f2937',
+                        brandBlue: '#3b82f6',
+                        brandCyan: '#06b6d4',
+                        alertRed: '#ef4444',
+                        alertOrange: '#f97316',
+                        alertYellow: '#eab308'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        // Immediate Theme initialization to prevent flicker
+        (function() {
+            const savedTheme = localStorage.getItem('netlogiq_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+</head>
+<body class="bg-[#0b0f19] text-gray-100 font-sans min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-[#111827] border-b border-gray-800 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <i class="fa-solid fa-network-wired text-white text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl font-black tracking-tight text-white">NetLog<span class="text-cyan-400">IQ</span></span>
+                        <span class="text-xs bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/50 font-medium">Multi-Vendor Syslog</span>
+                    </div>
+                    <p class="text-xs text-gray-400 hidden sm:block">Huawei • Cisco • Juniper • ZTE • Nokia • RFC-Standard</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 sm:space-x-4">
+                <!-- Port status badges -->
+                <div class="hidden md:flex items-center space-x-2 text-xs bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-800">
+                    <span class="flex h-2 w-2 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-gray-400">Syslog UDP/TCP:</span>
+                    <span class="font-mono text-cyan-400 font-semibold">:{{ udp_port }}</span>
+                </div>
+
+                <!-- WebSocket Connection Status -->
+                <div id="wsStatusBadge" class="flex items-center space-x-1.5 text-xs px-2.5 py-1 rounded-md bg-amber-950/40 text-amber-400 border border-amber-800/40">
+                    <i class="fa-solid fa-circle text-[8px] animate-pulse"></i>
+                    <span id="wsStatusText">Connecting...</span>
+                </div>
+
+                <!-- Theme Switcher Dropdown -->
+                <div class="relative">
+                    <button id="themeDropdownBtn" onclick="toggleThemeDropdown(event)" title="Change Theme & Visibility" class="flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-gray-700 bg-gray-800/80 text-gray-200 hover:text-white transition shadow-sm">
+                        <i id="themeCurrentIcon" class="fa-solid fa-moon text-cyan-400"></i>
+                        <span id="themeCurrentLabel" class="hidden lg:inline font-medium">Dark NOC</span>
+                        <i class="fa-solid fa-chevron-down text-[9px] text-gray-400 ml-0.5"></i>
+                    </button>
+                    <div id="themeDropdownMenu" class="hidden absolute right-0 mt-2 w-52 rounded-xl bg-[#111827] border border-gray-700 shadow-2xl py-1.5 z-50 text-xs">
+                        <div class="px-3 py-1 text-[10px] uppercase font-bold text-gray-400 tracking-wider border-b border-gray-800 mb-1">
+                            Theme & Color Visibility
+                        </div>
+                        <button onclick="setTheme('dark')" class="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-gray-800/80 text-gray-200 transition">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="h-3.5 w-3.5 rounded-full bg-[#0b0f19] border border-gray-500 shadow-inner"></span>
+                                <div>
+                                    <div class="font-semibold">Dark NOC</div>
+                                    <div class="text-[10px] text-gray-400">Midnight Operations</div>
+                                </div>
+                            </div>
+                            <i id="themeCheck-dark" class="fa-solid fa-check text-cyan-400 text-xs hidden"></i>
+                        </button>
+                        <button onclick="setTheme('light')" class="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-gray-800/80 text-gray-200 transition">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="h-3.5 w-3.5 rounded-full bg-slate-100 border border-slate-400 shadow-inner"></span>
+                                <div>
+                                    <div class="font-semibold text-gray-100">Light Enterprise</div>
+                                    <div class="text-[10px] text-gray-400">High Day Visibility</div>
+                                </div>
+                            </div>
+                            <i id="themeCheck-light" class="fa-solid fa-check text-cyan-400 text-xs hidden"></i>
+                        </button>
+                        <button onclick="setTheme('ocean')" class="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-gray-800/80 text-gray-200 transition">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="h-3.5 w-3.5 rounded-full bg-[#071322] border border-cyan-400 shadow-inner"></span>
+                                <div>
+                                    <div class="font-semibold">Ocean Blue</div>
+                                    <div class="text-[10px] text-gray-400">Navy Operations</div>
+                                </div>
+                            </div>
+                            <i id="themeCheck-ocean" class="fa-solid fa-check text-cyan-400 text-xs hidden"></i>
+                        </button>
+                        <button onclick="setTheme('cyberpunk')" class="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-gray-800/80 text-gray-200 transition">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="h-3.5 w-3.5 rounded-full bg-[#040508] border border-emerald-400 shadow-inner"></span>
+                                <div>
+                                    <div class="font-semibold">Cyber High-Contrast</div>
+                                    <div class="text-[10px] text-gray-400">Neon Maximum Contrast</div>
+                                </div>
+                            </div>
+                            <i id="themeCheck-cyberpunk" class="fa-solid fa-check text-cyan-400 text-xs hidden"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sound Alert Toggle -->
+                <button id="soundToggleBtn" onclick="toggleSoundAlert()" title="Toggle Sound Alerts" class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors border border-gray-800">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-cyan-400"></i>
+                </button>
+
+                <!-- Quick Simulator Trigger -->
+                <button onclick="switchTab('simulator')" class="hidden sm:inline-flex items-center space-x-1.5 text-xs bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-medium px-3 py-1.5 rounded-lg transition-all shadow-md shadow-blue-600/20">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Test Simulator</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-gray-800/60 flex space-x-1 sm:space-x-4 overflow-x-auto text-sm">
+            <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="nav-tab active flex items-center space-x-2 py-3 px-3 border-b-2 font-medium transition-colors">
+                <i class="fa-solid fa-chart-pie text-cyan-400"></i>
+                <span>NOC Analytics</span>
+            </button>
+            <button onclick="switchTab('devices')" id="tabBtn-devices" class="nav-tab flex items-center space-x-2 py-3 px-3 border-b-2 font-medium transition-colors">
+                <i class="fa-solid fa-server text-blue-400"></i>
+                <span>Device & IP Wise</span>
+            </button>
+            <button onclick="switchTab('logs')" id="tabBtn-logs" class="nav-tab flex items-center space-x-2 py-3 px-3 border-b-2 font-medium transition-colors">
+                <i class="fa-solid fa-list-ul text-emerald-400"></i>
+                <span>Live Logs Explorer</span>
+            </button>
+            <button onclick="switchTab('alerts')" id="tabBtn-alerts" class="nav-tab flex items-center space-x-2 py-3 px-3 border-b-2 font-medium transition-colors relative">
+                <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                <span>Critical Alerts</span>
+                <span id="activeAlertCountBadge" class="hidden ml-1 px-1.5 py-0.2 text-[10px] bg-rose-600 text-white rounded-full font-bold">0</span>
+            </button>
+            <button onclick="switchTab('simulator')" id="tabBtn-simulator" class="nav-tab flex items-center space-x-2 py-3 px-3 border-b-2 font-medium transition-colors">
+                <i class="fa-solid fa-microchip text-purple-400"></i>
+                <span>Multi-Vendor Simulator</span>
+            </button>
+            <button onclick="switchTab('settings')" id="tabBtn-settings" class="nav-tab flex items-center space-x-2 py-3 px-3 border-b-2 font-medium transition-colors">
+                <i class="fa-solid fa-bell text-amber-400"></i>
+                <span>Notifications & Config</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+        <!-- KPI Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 shadow-sm hover:border-gray-700 transition">
+                <div class="flex items-center justify-between text-gray-400 text-xs mb-1">
+                    <span>Total Logs</span>
+                    <i class="fa-solid fa-database text-blue-400"></i>
+                </div>
+                <div id="kpiTotalLogs" class="text-2xl font-bold text-white font-mono">0</div>
+                <div class="text-[11px] text-gray-500 mt-1 flex items-center">
+                    <span class="text-emerald-400 mr-1"><i class="fa-solid fa-arrow-up"></i> Real-time</span> indexed
+                </div>
+            </div>
+
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 shadow-sm hover:border-gray-700 transition">
+                <div class="flex items-center justify-between text-gray-400 text-xs mb-1">
+                    <span>Active Alerts</span>
+                    <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                </div>
+                <div id="kpiActiveAlerts" class="text-2xl font-bold text-rose-500 font-mono">0</div>
+                <div class="text-[11px] text-gray-500 mt-1">Requires NOC action</div>
+            </div>
+
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 shadow-sm hover:border-gray-700 transition">
+                <div class="flex items-center justify-between text-gray-400 text-xs mb-1">
+                    <span>Critical / Emergencies</span>
+                    <i class="fa-solid fa-radiation text-amber-400"></i>
+                </div>
+                <div id="kpiCriticalErrors" class="text-2xl font-bold text-amber-400 font-mono">0</div>
+                <div class="text-[11px] text-gray-500 mt-1">Severity 0-2 logs</div>
+            </div>
+
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 shadow-sm hover:border-gray-700 transition">
+                <div class="flex items-center justify-between text-gray-400 text-xs mb-1">
+                    <span>Monitored Devices</span>
+                    <i class="fa-solid fa-server text-cyan-400"></i>
+                </div>
+                <div id="kpiTotalDevices" class="text-2xl font-bold text-cyan-400 font-mono">0</div>
+                <div class="text-[11px] text-gray-500 mt-1">Discovered IP assets</div>
+            </div>
+
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 shadow-sm hover:border-gray-700 transition col-span-2 md:col-span-1">
+                <div class="flex items-center justify-between text-gray-400 text-xs mb-1">
+                    <span>Reboot & PSU Faults</span>
+                    <i class="fa-solid fa-plug-circle-exclamation text-purple-400"></i>
+                </div>
+                <div id="kpiHardwareFaults" class="text-2xl font-bold text-purple-400 font-mono">0</div>
+                <div class="text-[11px] text-gray-500 mt-1">Critical hardware events</div>
+            </div>
+        </div>
+
+        <!-- TAB 1: NOC ANALYTICS DASHBOARD -->
+        <div id="tabContent-dashboard" class="tab-pane active space-y-6">
+            <!-- 24H Timeline Chart -->
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-line text-cyan-400"></i>
+                        <span>24-Hour Syslog Volume & Error Trends</span>
+                    </h3>
+                    <span class="text-xs text-gray-400">Aggregated hourly</span>
+                </div>
+                <div class="h-64">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Charts Grid: Severity Distribution & Category Breakdown & Vendors -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Severity-wise Chart -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-chart-pie text-blue-400"></i>
+                            <span>Severity-Wise Distribution</span>
+                        </h3>
+                        <span class="text-xs text-gray-400">RFC 5424</span>
+                    </div>
+                    <div class="h-56 flex items-center justify-center">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Error & Event Category Chart -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-filter-circle-xmark text-rose-400"></i>
+                            <span>Error & Event Classification</span>
+                        </h3>
+                        <span class="text-xs text-gray-400">Reboot/PSU/CPU</span>
+                    </div>
+                    <div class="h-56">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Vendor Distribution Chart -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-building text-purple-400"></i>
+                            <span>Vendor Distribution</span>
+                        </h3>
+                        <span class="text-xs text-gray-400">Huawei/Cisco/etc</span>
+                    </div>
+                    <div class="h-56 flex items-center justify-center">
+                        <canvas id="vendorChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Table: Top Problematic Devices -->
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                        <span>High-Risk Devices (Most Errors & Alerts)</span>
+                    </h3>
+                    <button onclick="switchTab('devices')" class="text-xs text-cyan-400 hover:underline">View All Devices &rarr;</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-300">
+                        <thead class="bg-gray-900/60 text-gray-400 uppercase tracking-wider text-[11px] border-b border-gray-800">
+                            <tr>
+                                <th class="py-2.5 px-3">Device Hostname</th>
+                                <th class="py-2.5 px-3">IP Address</th>
+                                <th class="py-2.5 px-3">Vendor</th>
+                                <th class="py-2.5 px-3">Total Logs</th>
+                                <th class="py-2.5 px-3">Errors (Sev &le; 3)</th>
+                                <th class="py-2.5 px-3">Critical Alerts</th>
+                                <th class="py-2.5 px-3">Last Seen</th>
+                                <th class="py-2.5 px-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topProblemDevicesBody" class="divide-y divide-gray-800/60 font-mono">
+                            <tr><td colspan="8" class="text-center py-6 text-gray-500 font-sans">Loading device analytics...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: DEVICE & IP WISE ANALYTICS -->
+        <div id="tabContent-devices" class="tab-pane hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Device-wise Table -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-server text-cyan-400"></i>
+                            <span>Device-Wise Analytics</span>
+                        </h3>
+                        <span class="text-xs text-gray-400">Aggregated by Hostname</span>
+                    </div>
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table class="w-full text-left text-xs text-gray-300">
+                            <thead class="bg-gray-900/80 sticky top-0 text-gray-400 uppercase text-[10px] border-b border-gray-800">
+                                <tr>
+                                    <th class="py-2 px-3">Hostname</th>
+                                    <th class="py-2 px-3">Vendor</th>
+                                    <th class="py-2 px-3 text-right">Logs</th>
+                                    <th class="py-2 px-3 text-right text-amber-400">Errors</th>
+                                    <th class="py-2 px-3 text-right text-rose-400">Alerts</th>
+                                    <th class="py-2 px-3 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deviceWiseTableBody" class="divide-y divide-gray-800/50 font-mono">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- IP-wise Table -->
+                <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-network-wired text-blue-400"></i>
+                            <span>IP-Wise Analytics</span>
+                        </h3>
+                        <span class="text-xs text-gray-400">Aggregated by Source IP</span>
+                    </div>
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table class="w-full text-left text-xs text-gray-300">
+                            <thead class="bg-gray-900/80 sticky top-0 text-gray-400 uppercase text-[10px] border-b border-gray-800">
+                                <tr>
+                                    <th class="py-2 px-3">Source IP</th>
+                                    <th class="py-2 px-3">Hostname</th>
+                                    <th class="py-2 px-3">Vendor</th>
+                                    <th class="py-2 px-3 text-right">Total Logs</th>
+                                    <th class="py-2 px-3 text-right text-amber-400">Errors</th>
+                                    <th class="py-2 px-3 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ipWiseTableBody" class="divide-y divide-gray-800/50 font-mono">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: LIVE LOGS EXPLORER -->
+        <div id="tabContent-logs" class="tab-pane hidden space-y-4">
+            <!-- Filter Bar -->
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-4 shadow-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+                    <!-- Text Search -->
+                    <div class="md:col-span-2">
+                        <label class="block text-[11px] text-gray-400 mb-1">Search Keywords / Message</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-500 text-xs"></i>
+                            <input type="text" id="logSearchInput" placeholder="Filter message, mnemonic, IP..." onkeyup="debounceLogSearch()"
+                                class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500">
+                        </div>
+                    </div>
+
+                    <!-- Vendor Filter -->
+                    <div>
+                        <label class="block text-[11px] text-gray-400 mb-1">Vendor</label>
+                        <select id="logVendorFilter" onchange="fetchLogs(0)"
+                            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <option value="ALL">All Vendors</option>
+                            <option value="Huawei">Huawei</option>
+                            <option value="Cisco">Cisco</option>
+                            <option value="Juniper">Juniper</option>
+                            <option value="ZTE">ZTE</option>
+                            <option value="Nokia">Nokia</option>
+                            <option value="Generic">Generic / Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Severity Filter -->
+                    <div>
+                        <label class="block text-[11px] text-gray-400 mb-1">Severity</label>
+                        <select id="logSeverityFilter" onchange="fetchLogs(0)"
+                            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <option value="-1">All Severities</option>
+                            <option value="0">0 - Emergency</option>
+                            <option value="1">1 - Alert</option>
+                            <option value="2">2 - Critical</option>
+                            <option value="3">3 - Error</option>
+                            <option value="4">4 - Warning</option>
+                            <option value="5">5 - Notice</option>
+                            <option value="6">6 - Informational</option>
+                            <option value="7">7 - Debug</option>
+                        </select>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div>
+                        <label class="block text-[11px] text-gray-400 mb-1">Event Category</label>
+                        <select id="logCategoryFilter" onchange="fetchLogs(0)"
+                            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <option value="ALL">All Categories</option>
+                            <option value="REBOOT">⚡ Reboot / Crash</option>
+                            <option value="POWER_SUPPLY">🔋 Power Supply (PSU)</option>
+                            <option value="HIGH_CPU">🔥 High CPU Overload</option>
+                            <option value="FAN_TEMPERATURE">❄️ Fan / Temperature</option>
+                            <option value="INTERFACE_DOWN">🔌 Interface Down</option>
+                            <option value="BGP_OSPF">🌐 BGP / Routing Flap</option>
+                            <option value="SECURITY">🔒 Security / Login</option>
+                        </select>
+                    </div>
+
+                    <!-- Actions & Toggles -->
+                    <div class="flex items-end space-x-2">
+                        <button onclick="toggleLiveStream()" id="liveStreamBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-1.5 px-3 rounded-lg text-xs flex items-center justify-center space-x-1.5 shadow">
+                            <i id="liveStreamIcon" class="fa-solid fa-pause"></i>
+                            <span id="liveStreamText">Live</span>
+                        </button>
+                        <button onclick="exportLogsCSV()" title="Export CSV" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 rounded-lg text-xs border border-gray-700">
+                            <i class="fa-solid fa-file-csv"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alert Only Checkbox -->
+                <div class="mt-2.5 flex items-center space-x-2 text-xs text-gray-400">
+                    <input type="checkbox" id="logAlertOnlyCheck" onchange="fetchLogs(0)" class="rounded bg-gray-900 border-gray-700 text-rose-500 focus:ring-0">
+                    <label for="logAlertOnlyCheck" class="cursor-pointer hover:text-white">Show Critical Alert Events Only</label>
+                </div>
+            </div>
+
+            <!-- Logs Table Container -->
+            <div class="bg-[#111827] border border-gray-800 rounded-xl overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-300">
+                        <thead class="bg-gray-900/90 text-gray-400 uppercase text-[10px] tracking-wider border-b border-gray-800">
+                            <tr>
+                                <th class="py-2.5 px-3">Time (UTC)</th>
+                                <th class="py-2.5 px-3">Severity</th>
+                                <th class="py-2.5 px-3">Vendor</th>
+                                <th class="py-2.5 px-3">Device / IP</th>
+                                <th class="py-2.5 px-3">Category</th>
+                                <th class="py-2.5 px-3">Mnemonic</th>
+                                <th class="py-2.5 px-3 w-1/3">Message</th>
+                                <th class="py-2.5 px-3 text-center">View</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody" class="divide-y divide-gray-800/60 font-mono text-[11px]">
+                            <!-- Logs dynamically loaded -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Bar -->
+                <div class="p-3 bg-gray-900/60 border-t border-gray-800 flex items-center justify-between text-xs text-gray-400">
+                    <div id="paginationInfo">Showing 0 of 0 logs</div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="prevLogPage()" id="prevPageBtn" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-chevron-left"></i> Previous
+                        </button>
+                        <button onclick="nextLogPage()" id="nextPageBtn" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                            Next <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: CRITICAL ALERTS MANAGEMENT -->
+        <div id="tabContent-alerts" class="tab-pane hidden space-y-4">
+            <div class="flex items-center justify-between bg-[#111827] border border-gray-800 rounded-xl p-4">
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-bell text-rose-500"></i>
+                        <span>Active Network Incident Alerts</span>
+                    </h3>
+                    <p class="text-xs text-gray-400">Filtered for critical conditions: Device Reboot, PSU Failure, High CPU Overload, etc.</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select id="alertStatusFilter" onchange="fetchAlerts()" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white">
+                        <option value="ACTIVE">Active Alerts Only</option>
+                        <option value="ACKNOWLEDGED">Acknowledged</option>
+                        <option value="ALL">All Alerts</option>
+                    </select>
+                    <button onclick="fetchAlerts()" class="p-1.5 text-gray-400 hover:text-white bg-gray-800 rounded-lg border border-gray-700 text-xs">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alerts Cards Grid / Table -->
+            <div id="alertsContainer" class="space-y-3">
+                <!-- Dynamically populated alert cards -->
+            </div>
+        </div>
+
+        <!-- TAB 5: MULTI-VENDOR SIMULATOR -->
+        <div id="tabContent-simulator" class="tab-pane hidden space-y-6">
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                <div class="mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-microchip text-purple-400"></i>
+                        <span>Multi-Vendor Syslog Simulator & Test Console</span>
+                    </h3>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Instantly test your syslog pipeline with authentic Huawei, Cisco, Juniper, ZTE, and Nokia logs including critical scenarios (Reboots, PSU Failures, High CPU).
+                    </p>
+                </div>
+
+                <!-- Scenario Fast Action Buttons -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <button onclick="triggerScenarioSim('POWER_SUPPLY')" class="flex items-start space-x-3 p-3.5 bg-rose-950/30 hover:bg-rose-900/40 border border-rose-800/50 rounded-xl text-left transition group">
+                        <div class="h-8 w-8 rounded-lg bg-rose-600/20 text-rose-400 flex items-center justify-center mt-0.5 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-plug-circle-exclamation"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-rose-300">PSU Power Failure</div>
+                            <div class="text-[11px] text-gray-400">Simulate PSU fault on Cisco/Huawei/Nokia</div>
+                        </div>
+                    </button>
+
+                    <button onclick="triggerScenarioSim('REBOOT')" class="flex items-start space-x-3 p-3.5 bg-purple-950/30 hover:bg-purple-900/40 border border-purple-800/50 rounded-xl text-left transition group">
+                        <div class="h-8 w-8 rounded-lg bg-purple-600/20 text-purple-400 flex items-center justify-center mt-0.5 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-power-off"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-purple-300">Device Reboot</div>
+                            <div class="text-[11px] text-gray-400">Cold reload or kernel reboot event</div>
+                        </div>
+                    </button>
+
+                    <button onclick="triggerScenarioSim('HIGH_CPU')" class="flex items-start space-x-3 p-3.5 bg-amber-950/30 hover:bg-amber-900/40 border border-amber-800/50 rounded-xl text-left transition group">
+                        <div class="h-8 w-8 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center mt-0.5 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-fire"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-amber-300">High CPU Spike</div>
+                            <div class="text-[11px] text-gray-400">Threshold 95% CPU utilization</div>
+                        </div>
+                    </button>
+
+                    <button onclick="triggerScenarioSim('INTERFACE_DOWN')" class="flex items-start space-x-3 p-3.5 bg-blue-950/30 hover:bg-blue-900/40 border border-blue-800/50 rounded-xl text-left transition group">
+                        <div class="h-8 w-8 rounded-lg bg-blue-600/20 text-blue-400 flex items-center justify-center mt-0.5 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-network-wired"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-blue-300">Link & BGP Flap</div>
+                            <div class="text-[11px] text-gray-400">Interface DOWN & BGP peer drop</div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Custom Batch Simulator Controls -->
+                <div class="p-4 bg-gray-900/70 border border-gray-800 rounded-xl mb-6">
+                    <h4 class="text-xs font-semibold text-gray-300 mb-3">Custom Batch Generator</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Target Vendor</label>
+                            <select id="simVendorSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                                <option value="">Random Multi-Vendor</option>
+                                <option value="Huawei">Huawei (VRP)</option>
+                                <option value="Cisco">Cisco (IOS-XE/XR)</option>
+                                <option value="Juniper">Juniper (Junos)</option>
+                                <option value="ZTE">ZTE (ZXROS)</option>
+                                <option value="Nokia">Nokia (TiMOS)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Log Count</label>
+                            <input type="number" id="simCountInput" value="15" min="1" max="100" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Injection Mode</label>
+                            <select id="simModeSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                                <option value="pipeline">Direct High-Speed Pipeline</option>
+                                <option value="udp">Real UDP 1514 Datagrams</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="executeBatchSimulation()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-1.5 px-4 rounded-lg text-xs transition shadow-md shadow-cyan-600/20 flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-play"></i>
+                                <span>Generate Logs</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Raw Syslog Ingestion Box -->
+                <div class="p-4 bg-gray-900/70 border border-gray-800 rounded-xl">
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Test Custom Device Raw Syslog String</h4>
+                    <p class="text-[11px] text-gray-400 mb-2">Paste any real syslog message from your production router or switch to see how NetLogIQ normalizes, categorizes, and alerts on it.</p>
+                    <div class="flex space-x-2">
+                        <input type="text" id="manualLogInput" placeholder="<187>Oct 15 11:20:10 Switch-01: %SYS-5-RELOAD: Reload requested by vty0" class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-cyan-500">
+                        <button onclick="submitManualLog()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium">
+                            Analyze & Ingest
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: NOTIFICATIONS & CONFIG -->
+        <div id="tabContent-settings" class="tab-pane hidden space-y-6">
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-bell text-amber-400"></i>
+                            <span>Critical Alert Notification Channels</span>
+                        </h3>
+                        <p class="text-xs text-gray-400">Configure where alert notifications are automatically dispatched when a device reboots, has a PSU issue, or high CPU.</p>
+                    </div>
+                    <button onclick="saveNotificationSettings()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-1.5 px-4 rounded-lg text-xs flex items-center space-x-1.5 shadow">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save Configuration</span>
+                    </button>
+                </div>
+
+                <!-- Channel Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Telegram -->
+                    <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-brands fa-telegram text-cyan-400 text-lg"></i>
+                                <span class="text-xs font-bold text-white">Telegram Alerts</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="notifTgEnabled" class="rounded bg-gray-800 border-gray-700 text-cyan-500">
+                                <label for="notifTgEnabled" class="text-xs text-gray-300">Enable</label>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-xs">
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Bot Token</label>
+                                <input type="password" id="notifTgToken" placeholder="123456789:ABCdefGHIjklMNOpqrs" class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-1 text-white font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Chat ID / Channel ID</label>
+                                <input type="text" id="notifTgChatId" placeholder="-100123456789 or @channel" class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-1 text-white font-mono">
+                            </div>
+                            <button onclick="testNotificationChannel('telegram')" class="mt-2 text-[11px] bg-gray-800 hover:bg-gray-700 text-cyan-400 px-3 py-1 rounded border border-gray-700">
+                                <i class="fa-solid fa-paper-plane mr-1"></i> Send Test Message
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Slack Webhook -->
+                    <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-brands fa-slack text-rose-400 text-lg"></i>
+                                <span class="text-xs font-bold text-white">Slack Webhook</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="notifSlackEnabled" class="rounded bg-gray-800 border-gray-700 text-rose-500">
+                                <label for="notifSlackEnabled" class="text-xs text-gray-300">Enable</label>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-xs">
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Webhook URL</label>
+                                <input type="text" id="notifSlackUrl" placeholder="https://hooks.slack.com/services/..." class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-1 text-white font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Channel</label>
+                                <input type="text" id="notifSlackChannel" placeholder="#network-alerts" class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-1 text-white font-mono">
+                            </div>
+                            <button onclick="testNotificationChannel('slack')" class="mt-2 text-[11px] bg-gray-800 hover:bg-gray-700 text-rose-400 px-3 py-1 rounded border border-gray-700">
+                                <i class="fa-solid fa-paper-plane mr-1"></i> Send Test Alert
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Microsoft Teams -->
+                    <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-users text-indigo-400 text-lg"></i>
+                                <span class="text-xs font-bold text-white">Microsoft Teams</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="notifTeamsEnabled" class="rounded bg-gray-800 border-gray-700 text-indigo-500">
+                                <label for="notifTeamsEnabled" class="text-xs text-gray-300">Enable</label>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-xs">
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Teams Connector Webhook URL</label>
+                                <input type="text" id="notifTeamsUrl" placeholder="https://outlook.office.com/webhook/..." class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-1 text-white font-mono">
+                            </div>
+                            <button onclick="testNotificationChannel('ms_teams')" class="mt-2 text-[11px] bg-gray-800 hover:bg-gray-700 text-indigo-400 px-3 py-1 rounded border border-gray-700">
+                                <i class="fa-solid fa-paper-plane mr-1"></i> Send Test Message
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SMTP Email -->
+                    <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-envelope text-amber-400 text-lg"></i>
+                                <span class="text-xs font-bold text-white">SMTP Email Alerts</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="notifEmailEnabled" class="rounded bg-gray-800 border-gray-700 text-amber-500">
+                                <label for="notifEmailEnabled" class="text-xs text-gray-300">Enable</label>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="col-span-2">
+                                <label class="block text-[11px] text-gray-400 mb-1">Recipient Emails (comma separated)</label>
+                                <input type="text" id="notifEmailRecipients" placeholder="noc-alerts@company.com, admin@company.com" class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-1 text-white font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">SMTP Server</label>
+                                <input type="text" id="notifEmailSmtp" placeholder="smtp.gmail.com" class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-1 text-white font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Port</label>
+                                <input type="number" id="notifEmailPort" placeholder="587" class="w-full bg-gray-800 border border-gray-700 rounded px-2.5 py-1 text-white font-mono">
+                            </div>
+                        </div>
+                        <button onclick="testNotificationChannel('email')" class="mt-2 text-[11px] bg-gray-800 hover:bg-gray-700 text-amber-400 px-3 py-1 rounded border border-gray-700">
+                            <i class="fa-solid fa-paper-plane mr-1"></i> Send Test Email
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Log Detail Modal -->
+    <div id="logDetailModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#111827] border border-gray-800 rounded-xl max-w-2xl w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                <div class="flex items-center space-x-2">
+                    <span id="modalSevBadge" class="px-2 py-0.5 rounded text-xs font-bold">INFO</span>
+                    <h3 class="text-sm font-bold text-white" id="modalTitle">Log Entry Details</h3>
+                </div>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-xs font-mono">
+                <div class="grid grid-cols-2 gap-2 bg-gray-900/60 p-3 rounded-lg border border-gray-800/80">
+                    <div><span class="text-gray-400">Device Hostname:</span> <span id="modalHost" class="text-white font-bold"></span></div>
+                    <div><span class="text-gray-400">Device IP:</span> <span id="modalIP" class="text-cyan-400"></span></div>
+                    <div><span class="text-gray-400">Vendor:</span> <span id="modalVendor" class="text-purple-400"></span></div>
+                    <div><span class="text-gray-400">Event Category:</span> <span id="modalCategory" class="text-amber-400"></span></div>
+                    <div><span class="text-gray-400">Mnemonic / Tag:</span> <span id="modalMnemonic" class="text-white"></span></div>
+                    <div><span class="text-gray-400">Timestamp:</span> <span id="modalTimestamp" class="text-gray-300"></span></div>
+                </div>
+                <div>
+                    <label class="text-gray-400 block mb-1">Parsed Clean Message:</label>
+                    <div id="modalCleanMsg" class="p-3 bg-gray-900 rounded-lg border border-gray-800 text-gray-200 break-words whitespace-pre-wrap"></div>
+                </div>
+                <div>
+                    <label class="text-gray-400 block mb-1">Raw Syslog Packet:</label>
+                    <div id="modalRawMsg" class="p-3 bg-gray-950 rounded-lg border border-gray-800 text-gray-400 text-[11px] break-words whitespace-pre-wrap"></div>
+                </div>
+            </div>
+            <div class="flex justify-end pt-2">
+                <button onclick="closeModal()" class="px-4 py-1.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-xs">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Toast Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm pointer-events-none"></div>
+
+    <!-- Hidden audio element for audio alert beep -->
+    <audio id="alertAudio" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+    </audio>
+
+    <footer class="border-t border-gray-800/60 py-4 text-center text-xs text-gray-500 bg-[#0b0f19]">
+        NetLogIQ Syslog Analyzer &bull; Multi-Vendor Telemetry Engine &bull; Production Optimized
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/simulator.js"></script>
+</body>
+</html>

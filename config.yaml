@@ -1,0 +1,57 @@
+# NetLogIQ - Multi-Vendor Device Syslog Analysis & Alerting System Configuration
+
+server:
+  host: "0.0.0.0"
+  web_port: 8000
+  syslog_udp_port: 1514   # UDP syslog port (use 514 for standard production or 1514 for non-root/test)
+  syslog_tcp_port: 1514   # TCP syslog port
+  enable_tcp: true
+  enable_udp: true
+
+database:
+  path: "data/syslog_analyzer.db"
+  retention_days: 30      # Auto-purge logs older than retention period (0 to disable)
+
+alerts:
+  cooldown_seconds: 60    # Suppress duplicate alerts for same device + event within this window
+  auto_acknowledge_minutes: 0  # 0 = manual acknowledgment only
+  sound_alert_enabled: true
+
+notifications:
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+  
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#network-alerts"
+
+  discord:
+    enabled: false
+    webhook_url: ""
+
+  ms_teams:
+    enabled: false
+    webhook_url: ""
+
+  generic_webhook:
+    enabled: false
+    webhook_url: ""
+    headers: {}
+
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    use_tls: true
+    username: ""
+    password: ""
+    from_email: "netlog-alerts@company.com"
+    to_emails: []
+
+rules:
+  # Additional custom keywords or overrides
+  high_cpu_threshold: 85
+  high_mem_threshold: 85
