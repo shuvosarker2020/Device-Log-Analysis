@@ -76,6 +76,38 @@ python run.py
 
 ---
 
+## 🏢 Production Server Deployment (Linux / Cloud / Docker)
+
+### Option A: 1-Click Docker Deployment (Recommended)
+```bash
+git clone https://github.com/shuvosarker2020/Device-Log-Analysis.git
+cd Device-Log-Analysis
+
+# Start with Docker Compose
+docker compose up -d --build
+```
+- Web Dashboard: `http://<YOUR_SERVER_IP>:8000` (or configure port `80:8000` in `docker-compose.yml`)
+- Syslog UDP / TCP Port: `514`
+
+### Option B: Native Linux Service (Ubuntu / Debian Systemd)
+Run the automated installation script:
+```bash
+git clone https://github.com/shuvosarker2020/Device-Log-Analysis.git
+cd Device-Log-Analysis
+chmod +x deploy/setup_server.sh
+sudo ./deploy/setup_server.sh
+```
+Or manage via systemd manually:
+```bash
+sudo systemctl status netlogiq
+sudo systemctl restart netlogiq
+```
+
+### Option C: Nginx Reverse Proxy with SSL / WebSocket
+Copy `deploy/nginx.conf` to `/etc/nginx/sites-available/netlogiq` and link to `sites-enabled/`. Full instructions are provided in the deployment guide.
+
+---
+
 ## 📡 Device Configuration Examples
 
 Configure your routers and switches to forward syslog messages to NetLogIQ (replace `<NETLOG_IP>` with the IP of your analysis server):
