@@ -18,6 +18,11 @@ class SimulateRequest(BaseModel):
     vendor: Optional[str] = None
     scenario: Optional[str] = None
 
+class SecurityConfigRequest(BaseModel):
+    syslog_bind_ip: Optional[str] = None
+    enable_ip_whitelist: Optional[bool] = None
+    allowed_device_ips: Optional[List[str]] = None
+
 class NotificationConfigRequest(BaseModel):
     telegram: Optional[Dict[str, Any]] = None
     slack: Optional[Dict[str, Any]] = None
@@ -85,6 +90,9 @@ def get_logs(
 
 @router.post("/logs/ingest")
 async def ingest_log(req: IngestRequest):
+    from app.core.security import is_ip_allowed
+    if not is_ip_allowed(req.source_ip):
+        raise HTTPException(status_code=403, detail=f"Sender IP {req.source_ip} is not permitted by device IP whitelist")
     log, alert = await process_log_pipeline(req.message, req.source_ip)
     return {
         "status": "success",
@@ -151,6 +159,26 @@ def update_notifications(req: NotificationConfigRequest):
 
     cfg.update_notifications(update_data)
     return {"status": "success", "message": "Notification configurations updated successfully"}
+
+@router.post("/config/security")
+def update_security(req: SecurityConfigRequest):
+    if req.syslog_bind_ip is not None:
+        cfg.set(["server", "syslog_bind_ip"], req.syslog_bind_ip.strip())
+
+    sec_update = {}
+    if req.enable_ip_whitelist is not None:
+        sec_update["enable_ip_whitelist"] = req.enable_ip_whitelist
+    if req.allowed_device_ips is not None:
+        cleaned = [ip.strip() for ip in req.allowed_device_ips if ip.strip()]
+        sec_update["allowed_device_ips"] = cleaned
+
+    if sec_update:
+        cfg.update_security(sec_update)
+
+    return {
+        "status": "success",
+        "message": "Security & IP restriction settings updated successfully! (Note: Restart service if Bind IP was changed)."
+    }
 
 @router.post("/config/test-notification")
 def test_notification(channel: str = Body(..., embed=True)):

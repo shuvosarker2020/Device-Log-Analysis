@@ -630,6 +630,64 @@
 
         <!-- TAB 6: NOTIFICATIONS & CONFIG -->
         <div id="tabContent-settings" class="tab-pane hidden space-y-6">
+
+            <!-- Security & Network IP Restrictions Card -->
+            <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-shield-halved text-cyan-400"></i>
+                            <span>Network & Syslog Security Restrictions (IP Control)</span>
+                        </h3>
+                        <p class="text-xs text-gray-400 mt-0.5">Control which server interface receives syslogs (Private IP) and restrict which devices are allowed to send logs.</p>
+                    </div>
+                    <button onclick="saveSecuritySettings()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-1.5 px-4 rounded-lg text-xs flex items-center space-x-1.5 shadow transition">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save IP Restrictions</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <!-- Bind to Private IP -->
+                    <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <i class="fa-solid fa-network-wired text-blue-400 text-base"></i>
+                            <span class="text-xs font-bold text-white">Syslog Listening Interface (Private IP)</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mb-3">
+                            Set your server's <strong>Private IP</strong> so the Syslog collector only binds to the internal interface. Public IP interface traffic will be completely ignored.
+                        </p>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Server Bind IP Address</label>
+                            <input type="text" id="secBindIpInput" placeholder="0.0.0.0 (or e.g. 10.0.0.5, 192.168.1.10)" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-cyan-500">
+                            <p class="text-[10px] text-gray-500 mt-1">Default <code>0.0.0.0</code> listens on all interfaces. Set to your private IP to block public traffic.</p>
+                        </div>
+                    </div>
+
+                    <!-- Allowed Device Senders Whitelist -->
+                    <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-list-check text-emerald-400 text-base"></i>
+                                <span class="text-xs font-bold text-white">Device IP Whitelist (Allowed Senders)</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="secWhitelistEnabled" class="rounded bg-gray-800 border-gray-700 text-emerald-500">
+                                <label for="secWhitelistEnabled" class="text-xs text-gray-300 font-medium">Enable Restriction</label>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mb-2">
+                            Only network devices with matching IPs or CIDR subnets can submit logs. All other device IPs will be dropped immediately.
+                        </p>
+                        <div>
+                            <label class="block text-[11px] text-gray-400 mb-1">Allowed Device IPs / CIDR Subnets (comma or newline separated)</label>
+                            <textarea id="secAllowedIpsInput" rows="2" placeholder="10.100.1.1, 10.100.0.0/16, 192.168.1.0/24" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-cyan-500"></textarea>
+                            <p class="text-[10px] text-gray-500 mt-1">Leave empty or disable restriction to allow any internal network device.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
                     <div>

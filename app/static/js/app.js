@@ -857,11 +857,23 @@ async function acknowledgeAlert(alertId) {
     }
 }
 
-// --- Notification Config Management ---
+// --- Notification & Security Config Management ---
 async function loadNotificationConfig() {
     try {
         const cfg = await fetch('/api/config').then(r => r.json());
         const notif = cfg.notifications || {};
+        const srv = cfg.server || {};
+        const sec = cfg.security || {};
+
+        // Security & Bind IP
+        const bindInput = document.getElementById('secBindIpInput');
+        if (bindInput) bindInput.value = srv.syslog_bind_ip || '0.0.0.0';
+
+        const whitelistCheck = document.getElementById('secWhitelistEnabled');
+        if (whitelistCheck) whitelistCheck.checked = sec.enable_ip_whitelist || false;
+
+        const allowedIpsInput = document.getElementById('secAllowedIpsInput');
+        if (allowedIpsInput) allowedIpsInput.value = (sec.allowed_device_ips || []).join(', ');
 
         // Telegram
         if (notif.telegram) {
@@ -892,6 +904,35 @@ async function loadNotificationConfig() {
         }
     } catch (e) {
         console.error('Error loading config', e);
+    }
+}
+
+async function saveSecuritySettings() {
+    const bindInput = document.getElementById('secBindIpInput');
+    const whitelistCheck = document.getElementById('secWhitelistEnabled');
+    const allowedIpsInput = document.getElementById('secAllowedIpsInput');
+
+    const bindIp = bindInput ? bindInput.value.trim() : '0.0.0.0';
+    const whitelistEnabled = whitelistCheck ? whitelistCheck.checked : false;
+    const rawIps = allowedIpsInput ? allowedIpsInput.value : '';
+    const allowedIps = rawIps.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+
+    const payload = {
+        syslog_bind_ip: bindIp,
+        enable_ip_whitelist: whitelistEnabled,
+        allowed_device_ips: allowedIps
+    };
+
+    try {
+        const res = await fetch('/api/config/security', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(r => r.json());
+
+        alert(res.message || 'Security settings saved successfully!');
+    } catch (e) {
+        alert('Failed to save security settings: ' + e);
     }
 }
 

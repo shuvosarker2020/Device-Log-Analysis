@@ -11,6 +11,7 @@ def main():
     parser.add_argument("--host", default=None, help="Host to bind the web interface")
     parser.add_argument("--port", type=int, default=None, help="Port to bind the web interface (default: 8000)")
     parser.add_argument("--syslog-port", type=int, default=None, help="Port to bind Syslog UDP/TCP (default: 1514)")
+    parser.add_argument("--syslog-bind-ip", default=None, help="Specific IP address to bind Syslog UDP/TCP (e.g. private IP)")
     parser.add_argument("--init-only", action="store_true", help="Initialize database tables and exit")
     parser.add_argument("--simulate", action="store_true", help="Preload realistic multi-vendor logs on startup")
 
@@ -30,9 +31,12 @@ def main():
     if args.syslog_port:
         cfg.set(["server", "syslog_udp_port"], args.syslog_port)
         cfg.set(["server", "syslog_tcp_port"], args.syslog_port)
+    if args.syslog_bind_ip:
+        cfg.set(["server", "syslog_bind_ip"], args.syslog_bind_ip)
 
     web_host = cfg.get("server", "host", default="0.0.0.0")
     web_port = cfg.get("server", "web_port", default=8000)
+    syslog_bind = cfg.get("server", "syslog_bind_ip", default=web_host)
     syslog_udp = cfg.get("server", "syslog_udp_port", default=1514)
     syslog_tcp = cfg.get("server", "syslog_tcp_port", default=1514)
 
@@ -40,8 +44,9 @@ def main():
     print("  NETLOGIQ - MULTI-VENDOR DEVICE SYSLOG ANALYZER & ALERTING")
     print("=" * 65)
     print(f"  Web Dashboard:       http://localhost:{web_port}")
-    print(f"  Syslog UDP Listener: {web_host}:{syslog_udp}")
-    print(f"  Syslog TCP Listener: {web_host}:{syslog_tcp}")
+    print(f"  Syslog Bind IP:      {syslog_bind}")
+    print(f"  Syslog UDP Listener: {syslog_bind}:{syslog_udp}")
+    print(f"  Syslog TCP Listener: {syslog_bind}:{syslog_tcp}")
     print(f"  Supported Vendors:   Huawei, Cisco, Juniper, ZTE, Nokia, Generic")
     print(f"  Critical Alerts:     Reboot, PSU Failure, High CPU Spike, Link Down")
     print("=" * 65)

@@ -10,10 +10,15 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "server": {
         "host": "0.0.0.0",
         "web_port": 8000,
+        "syslog_bind_ip": "0.0.0.0",
         "syslog_udp_port": 1514,
         "syslog_tcp_port": 1514,
         "enable_tcp": True,
         "enable_udp": True,
+    },
+    "security": {
+        "enable_ip_whitelist": False,
+        "allowed_device_ips": [],
     },
     "database": {
         "path": "data/syslog_analyzer.db",
@@ -119,6 +124,20 @@ class ConfigManager:
             self._config["notifications"] = {}
         for k, v in notif_data.items():
             self._config["notifications"][k] = v
+        self.save()
+
+    def update_security(self, sec_data: Dict[str, Any]):
+        if "security" not in self._config:
+            self._config["security"] = {}
+        for k, v in sec_data.items():
+            self._config["security"][k] = v
+        self.save()
+
+    def update_server_settings(self, srv_data: Dict[str, Any]):
+        if "server" not in self._config:
+            self._config["server"] = {}
+        for k, v in srv_data.items():
+            self._config["server"][k] = v
         self.save()
 
     @property

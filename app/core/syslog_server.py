@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 from app.config import cfg
 from app.core.queue_worker import log_queue
+from app.core.security import is_ip_allowed
 
 logger = logging.getLogger("NetLogIQ.SyslogServer")
 
@@ -15,6 +16,11 @@ class SyslogUDPProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr):
         source_ip = addr[0]
+        # Check security / ACL restriction
+        if not is_ip_allowed(source_ip):
+            logger.debug(f"[SyslogACL] Dropped UDP datagram from unauthorized IP: {source_ip}")
+            return
+
         try:
             # Handle UTF-8 and fallback to Latin-1
             try:
@@ -36,6 +42,14 @@ class SyslogUDPProtocol(asyncio.DatagramProtocol):
 async def handle_tcp_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     peer = writer.get_extra_info("peername")
     source_ip = peer[0] if peer else "unknown"
+
+    # Check security / ACL restriction
+    if not is_ip_allowed(source_ip):
+        logger.warning(f"[SyslogACL] Rejecting TCP connection from unauthorized IP: {source_ip}")
+        writer.close()
+        await writer.wait_closed()
+        return
+
     buffer = ""
     try:
         while True:
@@ -67,6 +81,7 @@ class SyslogServer:
         self.udp_transport = None
         self.tcp_server = None
         self.host = cfg.get("server", "host", default="0.0.0.0")
+        self.bind_ip = cfg.get("server", "syslog_bind_ip", default=self.host)
         self.udp_port = cfg.get("server", "syslog_udp_port", default=1514)
         self.tcp_port = cfg.get("server", "syslog_tcp_port", default=1514)
         self.enable_udp = cfg.get("server", "enable_udp", default=True)
@@ -74,29 +89,33 @@ class SyslogServer:
 
     async def start(self):
         loop = asyncio.get_running_loop()
+        self.host = cfg.get("server", "host", default="0.0.0.0")
+        self.bind_ip = cfg.get("server", "syslog_bind_ip", default=self.host)
+        self.udp_port = cfg.get("server", "syslog_udp_port", default=1514)
+        self.tcp_port = cfg.get("server", "syslog_tcp_port", default=1514)
 
         # Start UDP listener
         if self.enable_udp:
             try:
                 self.udp_transport, _ = await loop.create_datagram_endpoint(
                     lambda: SyslogUDPProtocol(),
-                    local_addr=(self.host, self.udp_port)
+                    local_addr=(self.bind_ip, self.udp_port)
                 )
-                logger.info(f"[SyslogServer] UDP Syslog listening on {self.host}:{self.udp_port}")
+                logger.info(f"[SyslogServer] UDP Syslog listening on {self.bind_ip}:{self.udp_port}")
             except Exception as e:
-                logger.error(f"[SyslogServer] Failed to bind UDP port {self.udp_port}: {e}")
+                logger.error(f"[SyslogServer] Failed to bind UDP {self.bind_ip}:{self.udp_port}: {e}")
 
         # Start TCP listener
         if self.enable_tcp:
             try:
                 self.tcp_server = await asyncio.start_server(
                     handle_tcp_client,
-                    host=self.host,
+                    host=self.bind_ip,
                     port=self.tcp_port
                 )
-                logger.info(f"[SyslogServer] TCP Syslog listening on {self.host}:{self.tcp_port}")
+                logger.info(f"[SyslogServer] TCP Syslog listening on {self.bind_ip}:{self.tcp_port}")
             except Exception as e:
-                logger.error(f"[SyslogServer] Failed to bind TCP port {self.tcp_port}: {e}")
+                logger.error(f"[SyslogServer] Failed to bind TCP {self.bind_ip}:{self.tcp_port}: {e}")
 
     async def stop(self):
         if self.udp_transport:

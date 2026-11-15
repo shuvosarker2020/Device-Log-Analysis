@@ -108,6 +108,39 @@ Copy `deploy/nginx.conf` to `/etc/nginx/sites-available/netlogiq` and link to `s
 
 ---
 
+## 🔒 Network & Security Restrictions (Private IP & Device Whitelisting)
+
+### 1. Fix Syslog to Listen Only on Private IP
+If your server has both a Public IP and a Private IP, you can restrict the Syslog UDP/TCP listener to bind **only** to the Private IP. Traffic sent to the Public IP will be ignored.
+
+In `config.yaml`:
+```yaml
+server:
+  host: "0.0.0.0"            # Web dashboard listening host
+  syslog_bind_ip: "10.0.0.5" # Replace with your server's Private IP
+  syslog_udp_port: 514
+  syslog_tcp_port: 514
+```
+Or via CLI:
+```bash
+python run.py --syslog-bind-ip 10.0.0.5 --syslog-port 514
+```
+
+### 2. Device IP Whitelist (Allowed Senders ACL)
+Restrict which devices are permitted to submit syslogs. Any packet from an unlisted IP is rejected immediately at the socket layer.
+
+In `config.yaml` or via the **Notifications & Config** tab in the Web Dashboard:
+```yaml
+security:
+  enable_ip_whitelist: true
+  allowed_device_ips:
+    - "10.100.1.1"        # Individual core switch
+    - "10.100.0.0/16"     # Entire datacenter management subnet
+    - "192.168.1.0/24"    # Branch router subnet
+```
+
+---
+
 ## 📡 Device Configuration Examples
 
 Configure your routers and switches to forward syslog messages to NetLogIQ (replace `<NETLOG_IP>` with the IP of your analysis server):
