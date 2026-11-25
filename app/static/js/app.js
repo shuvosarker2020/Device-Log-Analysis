@@ -907,6 +907,16 @@ async function loadNotificationConfig() {
     }
 }
 
+function showSecurityStatus(message, isError = false) {
+    const box = document.getElementById('securityStatusMsg');
+    if (!box) return;
+    box.className = isError
+        ? 'mt-3 px-3 py-2 rounded-lg text-xs font-medium border bg-rose-950/50 border-rose-700/60 text-rose-300'
+        : 'mt-3 px-3 py-2 rounded-lg text-xs font-medium border bg-emerald-950/50 border-emerald-700/60 text-emerald-300';
+    box.innerText = message;
+    box.classList.remove('hidden');
+}
+
 async function saveSecuritySettings() {
     const bindInput = document.getElementById('secBindIpInput');
     const whitelistCheck = document.getElementById('secWhitelistEnabled');
@@ -930,23 +940,22 @@ async function saveSecuritySettings() {
             body: JSON.stringify(payload)
         }).then(r => r.json());
 
-        alert(res.message || 'Security settings saved successfully!');
+        showSecurityStatus(res.message || 'Security settings saved successfully!');
     } catch (e) {
-        alert('Failed to save security settings: ' + e);
+        showSecurityStatus('Failed to save security settings: ' + e, true);
     }
 }
 
 async function cleanupUnauthorizedDevices() {
-    if (!confirm('This will permanently delete all existing devices, logs, and alerts that do NOT match your currently saved Allowed IP Prefixes. Continue?')) {
-        return;
-    }
+    showSecurityStatus('Purging unauthorized devices and logs...', false);
     try {
         const res = await fetch('/api/config/security/cleanup', { method: 'POST' }).then(r => r.json());
-        alert(res.message || 'Cleanup complete!');
+        showSecurityStatus(res.message || 'Cleanup complete!');
         loadDashboardData();
+        loadDeviceAndIPStats();
         fetchLogs(0);
     } catch (e) {
-        alert('Cleanup failed: ' + e);
+        showSecurityStatus('Cleanup failed: ' + e, true);
     }
 }
 
