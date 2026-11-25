@@ -321,4 +321,36 @@ class LogRepository:
         finally:
             conn.close()
 
+    def cleanup_unauthorized_devices(self) -> Dict[str, int]:
+        """Remove all devices, logs, and alerts whose IP is not permitted by the current IP whitelist."""
+        from app.core.security import is_ip_allowed
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT source_ip FROM logs UNION SELECT DISTINCT ip FROM devices;")
+            all_ips = [row[0] for row in cursor.fetchall()]
+
+            blocked_ips = [ip for ip in all_ips if not is_ip_allowed(ip, record_block=False)]
+            if not blocked_ips:
+                return {"deleted_devices": 0, "deleted_logs": 0, "deleted_alerts": 0}
+
+            placeholders = ",".join("?" for _ in blocked_ips)
+            cursor.execute(f"DELETE FROM alerts WHERE source_ip IN ({placeholders})", blocked_ips)
+            deleted_alerts = cursor.rowcount
+
+            cursor.execute(f"DELETE FROM logs WHERE source_ip IN ({placeholders})", blocked_ips)
+            deleted_logs = cursor.rowcount
+
+            cursor.execute(f"DELETE FROM devices WHERE ip IN ({placeholders})", blocked_ips)
+            deleted_devices = cursor.rowcount
+
+            conn.commit()
+            return {
+                "deleted_devices": deleted_devices,
+                "deleted_logs": deleted_logs,
+                "deleted_alerts": deleted_alerts,
+            }
+        finally:
+            conn.close()
+
 repository = LogRepository()

@@ -180,6 +180,20 @@ def update_security(req: SecurityConfigRequest):
         "message": "Security & IP restriction settings updated successfully! (Note: Restart service if Bind IP was changed)."
     }
 
+@router.post("/config/security/cleanup")
+def cleanup_unauthorized_devices():
+    stats = repository.cleanup_unauthorized_devices()
+    return {
+        "status": "success",
+        "message": f"Purged {stats['deleted_devices']} unauthorized device(s) and {stats['deleted_logs']} log(s).",
+        **stats
+    }
+
+@router.get("/config/security/stats")
+def security_stats():
+    from app.core.security import get_security_stats
+    return get_security_stats()
+
 @router.post("/config/test-notification")
 def test_notification(channel: str = Body(..., embed=True)):
     success = notification_manager.send_test_alert(channel)

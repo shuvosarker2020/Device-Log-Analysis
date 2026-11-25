@@ -1,14 +1,17 @@
 server:
   host: 0.0.0.0
   web_port: 8000
-  syslog_bind_ip: 10.20.30.40
+  syslog_bind_ip: 0.0.0.0
   syslog_udp_port: 1514
   syslog_tcp_port: 1514
   enable_tcp: true
   enable_udp: true
 security:
-  enable_ip_whitelist: false
-  allowed_device_ips: []
+  enable_ip_whitelist: true
+  allowed_device_ips:
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
 database:
   path: data/syslog_analyzer.db
   retention_days: 30

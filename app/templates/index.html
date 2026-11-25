@@ -641,10 +641,16 @@
                         </h3>
                         <p class="text-xs text-gray-400 mt-0.5">Control which server interface receives syslogs (Private IP) and restrict which devices are allowed to send logs.</p>
                     </div>
-                    <button onclick="saveSecuritySettings()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-1.5 px-4 rounded-lg text-xs flex items-center space-x-1.5 shadow transition">
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Save IP Restrictions</span>
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="cleanupUnauthorizedDevices()" class="bg-rose-600/90 hover:bg-rose-500 text-white font-medium py-1.5 px-3 rounded-lg text-xs flex items-center space-x-1.5 shadow transition" title="Remove existing devices and logs that do not match your allowed IP prefixes">
+                            <i class="fa-solid fa-broom"></i>
+                            <span>Purge Unauthorized IPs</span>
+                        </button>
+                        <button onclick="saveSecuritySettings()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-1.5 px-4 rounded-lg text-xs flex items-center space-x-1.5 shadow transition">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save IP Restrictions</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -680,9 +686,9 @@
                             Only network devices with matching IPs or CIDR subnets can submit logs. All other device IPs will be dropped immediately.
                         </p>
                         <div>
-                            <label class="block text-[11px] text-gray-400 mb-1">Allowed Device IPs / CIDR Subnets (comma or newline separated)</label>
-                            <textarea id="secAllowedIpsInput" rows="2" placeholder="10.100.1.1, 10.100.0.0/16, 192.168.1.0/24" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-cyan-500"></textarea>
-                            <p class="text-[10px] text-gray-500 mt-1">Leave empty or disable restriction to allow any internal network device.</p>
+                            <label class="block text-[11px] text-gray-400 mb-1">Allowed Device IP Prefixes / CIDRs (comma or newline separated)</label>
+                            <textarea id="secAllowedIpsInput" rows="2" placeholder="10.100.0.0/16, 192.168.1.0/24, 172.16.5.10" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-cyan-500"></textarea>
+                            <p class="text-[10px] text-gray-500 mt-1">Supports CIDR prefixes (<code>10.10.0.0/16</code>), wildcard prefixes (<code>10.10.*</code>), or exact IPs. If enabled with an empty list, all external IPs are blocked.</p>
                         </div>
                     </div>
                 </div>

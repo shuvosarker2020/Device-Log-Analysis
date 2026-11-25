@@ -936,6 +936,20 @@ async function saveSecuritySettings() {
     }
 }
 
+async function cleanupUnauthorizedDevices() {
+    if (!confirm('This will permanently delete all existing devices, logs, and alerts that do NOT match your currently saved Allowed IP Prefixes. Continue?')) {
+        return;
+    }
+    try {
+        const res = await fetch('/api/config/security/cleanup', { method: 'POST' }).then(r => r.json());
+        alert(res.message || 'Cleanup complete!');
+        loadDashboardData();
+        fetchLogs(0);
+    } catch (e) {
+        alert('Cleanup failed: ' + e);
+    }
+}
+
 async function saveNotificationSettings() {
     const payload = {
         telegram: {

@@ -17,8 +17,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "enable_udp": True,
     },
     "security": {
-        "enable_ip_whitelist": False,
-        "allowed_device_ips": [],
+        "enable_ip_whitelist": True,
+        "allowed_device_ips": ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
     },
     "database": {
         "path": "data/syslog_analyzer.db",
