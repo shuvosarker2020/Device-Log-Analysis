@@ -595,37 +595,113 @@ async function loadDeviceAndIPStats() {
 
         const devBody = document.getElementById('deviceWiseTableBody');
         if (devBody) {
-            devBody.innerHTML = devices.map(d => `
+            devBody.innerHTML = devices.length ? devices.map(d => `
                 <tr class="hover:bg-gray-800/40 transition">
                     <td class="py-2 px-3 text-white font-medium">${d.hostname}</td>
                     <td class="py-2 px-3"><span class="px-1.5 py-0.5 text-[9px] bg-gray-800 text-gray-300 rounded">${d.vendor}</span></td>
                     <td class="py-2 px-3 text-right text-gray-300">${d.total_logs}</td>
                     <td class="py-2 px-3 text-right font-bold ${d.error_count > 0 ? 'text-amber-400' : 'text-gray-400'}">${d.error_count}</td>
                     <td class="py-2 px-3 text-right font-bold ${d.alert_count > 0 ? 'text-rose-400' : 'text-gray-400'}">${d.alert_count}</td>
-                    <td class="py-2 px-3 text-center">
+                    <td class="py-2 px-3 text-center whitespace-nowrap space-x-2">
                         <button onclick="filterLogsByDevice('${d.hostname}')" class="text-cyan-400 hover:underline text-[10px] font-sans">Filter</button>
+                        <button onclick="deleteDeviceLogs(this, '${encodeURIComponent(d.hostname)}', '${encodeURIComponent(d.source_ip)}')" class="text-rose-400 hover:text-rose-300 text-[10px] font-sans" title="Delete all logs for this device">
+                            <i class="fa-solid fa-trash-can"></i> Remove
+                        </button>
                     </td>
                 </tr>
-            `).join('');
+            `).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-500 font-sans">No devices found.</td></tr>`;
         }
 
         const ipBody = document.getElementById('ipWiseTableBody');
         if (ipBody) {
-            ipBody.innerHTML = ips.map(i => `
+            ipBody.innerHTML = ips.length ? ips.map(i => `
                 <tr class="hover:bg-gray-800/40 transition">
                     <td class="py-2 px-3 text-cyan-400 font-medium">${i.source_ip}</td>
                     <td class="py-2 px-3 text-white">${i.hostname}</td>
                     <td class="py-2 px-3 text-gray-400">${i.vendor}</td>
                     <td class="py-2 px-3 text-right text-gray-300">${i.total_logs}</td>
                     <td class="py-2 px-3 text-right font-bold ${i.error_count > 0 ? 'text-amber-400' : 'text-gray-400'}">${i.error_count}</td>
-                    <td class="py-2 px-3 text-center">
+                    <td class="py-2 px-3 text-center whitespace-nowrap space-x-2">
                         <button onclick="filterLogsByIP('${i.source_ip}')" class="text-cyan-400 hover:underline text-[10px] font-sans">Filter</button>
+                        <button onclick="deleteDeviceLogs(this, '', '${encodeURIComponent(i.source_ip)}')" class="text-rose-400 hover:text-rose-300 text-[10px] font-sans" title="Delete all logs for this IP">
+                            <i class="fa-solid fa-trash-can"></i> Remove
+                        </button>
                     </td>
                 </tr>
-            `).join('');
+            `).join('') : `<tr><td colspan="6" class="text-center py-6 text-gray-500 font-sans">No IP records found.</td></tr>`;
         }
     } catch (e) {
         console.error('Error loading device/IP stats', e);
+    }
+}
+
+function showDeviceActionStatus(msg) {
+    const el = document.getElementById('deviceActionStatus');
+    if (el) {
+        el.innerText = msg;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 5000);
+    }
+}
+
+async function deleteDeviceLogs(btn, encodedHost, encodedIp) {
+    if (!btn.dataset.confirmed) {
+        btn.dataset.confirmed = 'true';
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirm?';
+        btn.classList.add('font-bold', 'text-rose-300');
+        setTimeout(() => {
+            if (btn.dataset.confirmed) {
+                delete btn.dataset.confirmed;
+                btn.innerHTML = origHtml;
+                btn.classList.remove('font-bold', 'text-rose-300');
+            }
+        }, 3500);
+        return;
+    }
+    delete btn.dataset.confirmed;
+
+    const params = new URLSearchParams();
+    if (encodedHost) params.append('hostname', decodeURIComponent(encodedHost));
+    if (encodedIp) params.append('source_ip', decodeURIComponent(encodedIp));
+
+    try {
+        const res = await fetch(`/api/logs/device?${params.toString()}`, { method: 'DELETE' }).then(r => r.json());
+        showDeviceActionStatus(res.message || 'Device logs removed.');
+        loadDeviceAndIPStats();
+        loadDashboardData();
+        fetchLogs(0);
+    } catch (e) {
+        showDeviceActionStatus('Failed to remove device logs: ' + e);
+    }
+}
+
+async function confirmClearAllLogs(btn) {
+    if (!btn.dataset.confirmed) {
+        btn.dataset.confirmed = 'true';
+        const origHtml = btn.innerHTML;
+        btn.dataset.origHtml = origHtml;
+        btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> <span>Click again to confirm</span>';
+        setTimeout(() => {
+            if (btn.dataset.confirmed) {
+                delete btn.dataset.confirmed;
+                btn.innerHTML = btn.dataset.origHtml || origHtml;
+            }
+        }, 4000);
+        return;
+    }
+    delete btn.dataset.confirmed;
+    if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;
+
+    try {
+        const res = await fetch('/api/logs/all', { method: 'DELETE' }).then(r => r.json());
+        showDeviceActionStatus(res.message || 'All logs cleared.');
+        loadDeviceAndIPStats();
+        loadDashboardData();
+        fetchLogs(0);
+        fetchAlerts();
+    } catch (e) {
+        showDeviceActionStatus('Failed to clear logs: ' + e);
     }
 }
 

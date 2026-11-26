@@ -317,6 +317,23 @@
 
         <!-- TAB 2: DEVICE & IP WISE ANALYTICS -->
         <div id="tabContent-devices" class="tab-pane hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111827] border border-gray-800 rounded-xl p-4">
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-server text-cyan-400"></i>
+                        <span>Device & IP Log Management</span>
+                    </h3>
+                    <p class="text-xs text-gray-400">Inspect per-device or per-IP log counts, or remove logs on a device basis / clear all logs.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="deviceActionStatus" class="hidden text-xs px-2.5 py-1 rounded-lg bg-emerald-950/60 text-emerald-300 border border-emerald-700/60"></span>
+                    <button onclick="confirmClearAllLogs(this)" class="bg-rose-600/90 hover:bg-rose-500 text-white font-medium py-1.5 px-3.5 rounded-lg text-xs flex items-center space-x-1.5 shadow transition">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Clear All Logs</span>
+                    </button>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Device-wise Table -->
                 <div class="bg-[#111827] border border-gray-800 rounded-xl p-5 shadow-sm">
@@ -447,6 +464,10 @@
                         </button>
                         <button onclick="exportLogsCSV()" title="Export CSV" class="bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 px-3 rounded-lg text-xs border border-gray-700">
                             <i class="fa-solid fa-file-csv"></i>
+                        </button>
+                        <button onclick="confirmClearAllLogs(this)" title="Clear All Logs" class="bg-rose-600/90 hover:bg-rose-500 text-white py-1.5 px-3 rounded-lg text-xs flex items-center space-x-1 shadow transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span class="hidden xl:inline">Clear All</span>
                         </button>
                     </div>
                 </div>
@@ -873,7 +894,7 @@
     </footer>
 
     <!-- Scripts -->
-    <script src="/static/js/app.js?v=20261125"></script>
-    <script src="/static/js/simulator.js?v=20261125"></script>
+    <script src="/static/js/app.js?v=20261126"></script>
+    <script src="/static/js/simulator.js?v=20261126"></script>
 </body>
 </html>

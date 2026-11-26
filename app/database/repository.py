@@ -353,4 +353,74 @@ class LogRepository:
         finally:
             conn.close()
 
+    def delete_logs_by_device(self, hostname: Optional[str] = None, source_ip: Optional[str] = None) -> Dict[str, int]:
+        """Delete all logs, alerts, and device inventory records for a specific hostname and/or source IP."""
+        if not hostname and not source_ip:
+            return {"deleted_logs": 0, "deleted_alerts": 0, "deleted_devices": 0}
+
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            conditions = []
+            params = []
+            if hostname:
+                conditions.append("hostname = ?")
+                params.append(hostname)
+            if source_ip:
+                conditions.append("source_ip = ?")
+                params.append(source_ip)
+
+            where_clause = " AND ".join(conditions)
+
+            cursor.execute(f"DELETE FROM alerts WHERE {where_clause}", params)
+            deleted_alerts = cursor.rowcount
+
+            cursor.execute(f"DELETE FROM logs WHERE {where_clause}", params)
+            deleted_logs = cursor.rowcount
+
+            # Remove matching device(s) from devices table
+            dev_conditions = []
+            dev_params = []
+            if hostname:
+                dev_conditions.append("hostname = ?")
+                dev_params.append(hostname)
+            if source_ip:
+                dev_conditions.append("ip = ?")
+                dev_params.append(source_ip)
+
+            cursor.execute(f"DELETE FROM devices WHERE {' AND '.join(dev_conditions)}", dev_params)
+            deleted_devices = cursor.rowcount
+
+            conn.commit()
+            return {
+                "deleted_logs": deleted_logs,
+                "deleted_alerts": deleted_alerts,
+                "deleted_devices": deleted_devices,
+            }
+        finally:
+            conn.close()
+
+    def delete_all_logs(self) -> Dict[str, int]:
+        """Delete all logs, alerts, and auto-discovered devices."""
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM alerts;")
+            deleted_alerts = cursor.rowcount
+
+            cursor.execute("DELETE FROM logs;")
+            deleted_logs = cursor.rowcount
+
+            cursor.execute("DELETE FROM devices;")
+            deleted_devices = cursor.rowcount
+
+            conn.commit()
+            return {
+                "deleted_logs": deleted_logs,
+                "deleted_alerts": deleted_alerts,
+                "deleted_devices": deleted_devices,
+            }
+        finally:
+            conn.close()
+
 repository = LogRepository()

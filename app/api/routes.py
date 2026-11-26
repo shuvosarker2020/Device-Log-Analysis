@@ -100,6 +100,30 @@ async def ingest_log(req: IngestRequest):
         "alert": alert.model_dump(mode="json") if alert else None
     }
 
+@router.delete("/logs/all")
+def delete_all_logs():
+    stats = repository.delete_all_logs()
+    return {
+        "status": "success",
+        "message": f"Cleared all {stats['deleted_logs']} log(s), {stats['deleted_alerts']} alert(s), and {stats['deleted_devices']} device(s).",
+        **stats
+    }
+
+@router.delete("/logs/device")
+def delete_device_logs(
+    hostname: Optional[str] = Query(None),
+    source_ip: Optional[str] = Query(None)
+):
+    if not hostname and not source_ip:
+        raise HTTPException(status_code=400, detail="Provide hostname or source_ip to delete logs.")
+    stats = repository.delete_logs_by_device(hostname=hostname, source_ip=source_ip)
+    target = hostname or source_ip
+    return {
+        "status": "success",
+        "message": f"Removed {stats['deleted_logs']} log(s) and {stats['deleted_alerts']} alert(s) for {target}.",
+        **stats
+    }
+
 # --- Alerts Endpoints ---
 
 @router.get("/alerts")

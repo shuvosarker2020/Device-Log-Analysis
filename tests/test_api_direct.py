@@ -50,5 +50,22 @@ class TestAPIDirect(unittest.TestCase):
         self.assertEqual(res["log"]["event_category"], "POWER_SUPPLY")
         self.assertTrue(res["log"]["is_alert"])
 
+    def test_delete_device_and_all_logs(self):
+        from app.api.routes import delete_device_logs, delete_all_logs
+        async def seed():
+            await ingest_log(IngestRequest(message="<187>Oct 15 11:20:10 SW-A: %SYS-5-RELOAD: Reload", source_ip="10.10.1.1"))
+            await ingest_log(IngestRequest(message="<187>Oct 15 11:20:10 SW-B: %SYS-5-RELOAD: Reload", source_ip="10.10.1.2"))
+
+        asyncio.run(seed())
+        res_dev = delete_device_logs(hostname=None, source_ip="10.10.1.1")
+        self.assertEqual(res_dev["status"], "success")
+        self.assertGreaterEqual(res_dev["deleted_logs"], 1)
+
+        res_all = delete_all_logs()
+        self.assertEqual(res_all["status"], "success")
+        summary = get_summary()
+        self.assertEqual(summary["total_logs"], 0)
+        self.assertEqual(summary["total_devices"], 0)
+
 if __name__ == "__main__":
     unittest.main()
